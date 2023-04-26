@@ -2,69 +2,36 @@ import pymongo
 
 
 def del_redundant(collection):
+    from pymongo import MongoClient
+
     pipeline = [
         {
             "$group": {
                 "_id": {
-                    "field1": "$field1",
-                    "field2": "$field2",
-                    "field3": "$field3",
-                    # add more fields as needed
+                    "co_name": "$co_name",
+                    "city": "$city",
+                    "co_active_industries": "$co_active_industries",
+                    "Link": "$Link",
+                    "Revenue": "$Revenue"
                 },
-                "ids": {
-                    "$push": "$_id"
-                },
-                "count": {
-                    "$sum": 1
-                }
+                "ids": {"$push": "$_id"},
+                "count": {"$sum": 1}
             }
         },
         {
             "$match": {
-                "count": {
-                    "$gt": 1
-                }
-            }
-        },
-        {
-            "$sort": {
-                "count": -1
-            }
-        },
-        {
-            "$skip": 1
-        },
-        {
-            "$unwind": "$ids"
-        },
-        {
-            "$group": {
-                "_id": "$ids",
-                "count": {
-                    "$sum": 1
-                }
-            }
-        },
-        {
-            "$match": {
-                "count": {
-                    "$gt": 1
-                }
-            }
-        },
-        {
-            "$replaceRoot": {
-                "newRoot": {
-                    "_id": "$_id"
-                }
+                "count": {"$gt": 1}
             }
         }
     ]
 
-    result = collection.aggregate(pipeline)
+    # Identify duplicate documents
+    duplicate_groups = collection.aggregate(pipeline)
 
-    for doc in result:
-        collection.delete_one({"_id": doc["_id"]})
+    # Delete duplicate documents
+    for group in duplicate_groups:
+        for id in group["ids"][1:]:
+            collection.delete_one({"_id": id})
 
 
 def edit_array(collection):
@@ -83,9 +50,9 @@ if __name__ == '__main__':
 
     client = pymongo.MongoClient("mongodb://localhost:27017/")
     db = client["Industries"]
-    collection = db["Companies"]
+    collection = db["companies"]
     edit_array(collection)
-    del_redundant(collection)
+    #del_redundant(collection)
 
     # Find all documents with the old format of co_active_industries
 
